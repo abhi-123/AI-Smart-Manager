@@ -1,5 +1,5 @@
-//const baseURl = "https://ai-mock-interviewer-354v.onrender.com";
-const baseURl = "http://127.0.0.1:8000";
+const baseURl = "https://ai-smart-manager.onrender.com";
+//const baseURl = "http://127.0.0.1:8000";
 export const generateSubTasks = async (data) => {
   const response = await fetch(baseURl + "/generate-subtasks", {
     method: "POST",

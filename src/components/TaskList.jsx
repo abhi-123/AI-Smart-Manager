@@ -106,36 +106,38 @@ function TaskList() {
         filteredData.map((task) => {
           const isInProgress = task.status === "In-Progress";
           const isDone = task.status === "Done";
+          const hasSubTasks = task.subTasks?.length > 0;
           const isOpen = openTaskId === task.id;
-          console.log(isOpen, "isOpen");
 
           return (
             <div
               key={task.id}
               className="bg-white rounded-2xl shadow overflow-hidden hover:bg-gray-50 transition hover:shadow-md hover:-translate-y-[1px]"
             >
-              {/* 🔹 MAIN TASK (CLICKABLE) */}
-              <div className="p-5 flex justify-between items-center cursor-pointer">
+              {/* 🔹 MAIN TASK */}
+              <div className="p-5 flex flex-col gap-3 md:flex-row md:justify-between md:items-center">
+                {/* 🔹 LEFT SECTION */}
                 <div
-                  className="flex-1 min-w-0 mr-4"
+                  className="w-full"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (task.isEdit) return;
-                    if (!task.subTasks || task.subTasks.length === 0) return;
-                    return setOpenTaskId(isOpen ? null : task.id);
+                    if (!hasSubTasks) return; // 🔥 FIX
+                    setOpenTaskId(isOpen ? null : task.id);
                   }}
                 >
                   {task.isEdit ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-start gap-2">
                       <input
                         type="text"
                         autoFocus
                         value={editedText[task.id] ?? ""}
                         className="flex-1 p-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-400"
                         onChange={(e) => {
-                          setEditedText((prev) => {
-                            return { ...prev, [task.id]: e.target.value };
-                          });
+                          setEditedText((prev) => ({
+                            ...prev,
+                            [task.id]: e.target.value,
+                          }));
                         }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
@@ -144,7 +146,6 @@ function TaskList() {
                         }}
                       />
 
-                      {/* SAVE */}
                       <button
                         className={`text-green-600 text-sm hover:scale-110 transition ${!editedText[task.id]?.trim() ? "cursor-not-allowed disabled:opacity-50" : "cursor-pointer"}`}
                         disabled={!editedText[task.id]?.trim()}
@@ -156,15 +157,10 @@ function TaskList() {
                         ✔
                       </button>
 
-                      {/* CANCEL */}
                       <button
                         className="text-red-500 text-sm hover:scale-110 transition cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setEditedText((prev) => {
-                            const { [task.id]: _, ...rest } = prev;
-                            return rest;
-                          });
                           dispatch({
                             type: "TOGGLE_EDIT_TASK",
                             payload: task.id,
@@ -176,192 +172,163 @@ function TaskList() {
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center gap-2">
-                        <p className="text-gray-800 font-medium break-all line-clamp-2">
+                      <div className="flex items-center gap-2 justify-between md:justify-start">
+                        <p className="text-gray-800 font-medium break-words leading-relaxed">
                           {task.title}
                         </p>
+                        <div className="flex gap-2">
+                          {!isDone && (
+                            <button
+                              className="text-gray-400 hover:text-purple-600 transition cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
 
-                        {/* EDIT ICON */}
-                        {!isDone && (
-                          <button
-                            className="text-gray-400 hover:text-purple-600 transition cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
+                                if (hasSubTasks) {
+                                  setSelectedTask(task);
+                                  setShowWarning(true);
+                                  return;
+                                }
 
-                              if (task.subTasks?.length > 0) {
-                                setSelectedTask(task);
-                                setShowWarning(true);
-                                return;
-                              }
+                                setEditedText((prev) => ({
+                                  ...prev,
+                                  [task.id]: task.title,
+                                }));
 
-                              // normal edit
-                              setEditedText((prev) => ({
-                                ...prev,
-                                [task.id]: task.title,
-                              }));
+                                dispatch({
+                                  type: "TOGGLE_EDIT_TASK",
+                                  payload: task.id,
+                                });
+                              }}
+                            >
+                              ✏️
+                            </button>
+                          )}
 
-                              dispatch({
-                                type: "TOGGLE_EDIT_TASK",
-                                payload: task.id,
-                              });
-                            }}
-                          >
-                            ✏️
-                          </button>
-                        )}
-                        {/* CARET */}
-                        {task.subTasks?.length > 0 && (
-                          <span className="text-purple-500 text-sm pt-1">
-                            {isOpen ? "▲" : "▼"}
-                          </span>
-                        )}
+                          {hasSubTasks && (
+                            <span className="text-purple-500 text-sm">
+                              {isOpen ? "▲" : "▼"}
+                            </span>
+                          )}
+                        </div>
                       </div>
+
                       <p className="text-xs text-gray-400 mt-1">
                         {getRelativeTime(task.time)}
                       </p>
                     </>
                   )}
                 </div>
-                <div className="flex items-center gap-3">
-                  {/* STATUS (SECONDARY) */}
+
+                {/* 🔹 RIGHT SECTION */}
+                <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
+                  {/* STATUS */}
                   <span
-                    className={`px-3 py-1 text-xs rounded-full font-medium  ${
-                      taskColor[task.status]
-                    }`}
+                    className={`px-3 py-1 text-xs rounded-full font-medium ${taskColor[task.status]}`}
                   >
                     {task.status}
                   </span>
 
-                  {/* AI SUBTASK BUTTON (PRIMARY CTA 🔥) */}
+                  {/* AI BUTTON */}
                   {!isDone && (
                     <button
-                      disabled={task.subTasks?.length > 0 || subTaskLoading}
+                      disabled={hasSubTasks || subTaskLoading}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSubTasks(task);
                       }}
-                      className={`text-xs px-4 py-1.5 rounded-full font-medium transition flex items-center gap-1
-      ${
-        task.subTasks?.length > 0
-          ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-          : subTaskLoading
-            ? "bg-purple-300 text-white cursor-not-allowed"
-            : "bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:opacity-90 shadow-sm cursor-pointer"
-      }`}
+                      className={`text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1
+                  ${
+                    hasSubTasks
+                      ? "bg-gray-200 text-gray-400"
+                      : subTaskLoading
+                        ? "bg-purple-300 text-white"
+                        : "bg-gradient-to-r from-purple-500 to-indigo-500 text-white"
+                  }`}
                     >
-                      {subTaskLoading ? (
-                        <>
-                          ⏳ <span>Generating</span>
-                        </>
-                      ) : (
-                        <>
-                          ✨ <span>AI Subtasks</span>
-                        </>
-                      )}
+                      {subTaskLoading ? "⏳ Generating" : "✨ AI Subtasks"}
                     </button>
                   )}
 
-                  {/* ACTION BUTTONS GROUP */}
-                  <div className="flex items-center gap-2">
-                    {/* TOGGLE STATUS */}
-                    <button
-                      title="Toggle Status"
-                      className={`p-1.5 rounded-full transition
-      ${
-        isDone
-          ? "text-gray-300 cursor-not-allowed"
-          : "text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition cursor-pointer"
-      }`}
-                      disabled={isDone}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        dispatch({
-                          type: "TOGGLE_STATUS",
-                          payload: task.id,
-                        });
-                      }}
-                    >
-                      🔁
-                    </button>
+                  {/* ACTIONS */}
+                  <button
+                    title="Toggle Status"
+                    className={`p-1.5 rounded-full transition
+  ${
+    isDone
+      ? "text-gray-300 cursor-not-allowed"
+      : "text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition cursor-pointer"
+  }`}
+                    disabled={isDone}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      dispatch({
+                        type: "TOGGLE_STATUS",
+                        payload: task.id,
+                      });
+                    }}
+                  >
+                    🔁
+                  </button>
 
-                    {/* DELETE */}
-                    <button
-                      title="Delete Task"
-                      className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition cursor-pointer"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        dispatch({
-                          type: "DELETE_TASK",
-                          payload: task.id,
-                        });
-                      }}
-                    >
-                      ❌
-                    </button>
-                  </div>
+                  <button
+                    title="Delete Task"
+                    className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      dispatch({
+                        type: "DELETE_TASK",
+                        payload: task.id,
+                      });
+                    }}
+                  >
+                    ❌
+                  </button>
                 </div>
               </div>
 
               {/* 🔥 SUBTASK SECTION */}
-              {isOpen && (
+              {isOpen && hasSubTasks && (
                 <div className="bg-gray-50 px-5 pb-5 space-y-3 border-t pt-3 mt-3">
-                  {/* HEADER */}
-                  <div className="flex justify-between items-center pt-4">
-                    <p className="text-sm font-medium text-gray-700">
-                      Subtasks
-                    </p>
+                  <p className="text-sm font-medium text-gray-700">Subtasks</p>
 
-                    {task.status === "Todo" && (
-                      <span className="text-xs text-gray-400">
-                        Switch to In-Progress to enable
-                      </span>
-                    )}
+                  {task.status === "Todo" && (
+                    <span className="text-xs text-gray-400">
+                      Switch to In-Progress to enable
+                    </span>
+                  )}
 
-                    {isDone && (
-                      <span className="text-xs text-green-600 font-medium">
-                        ✔ Completed
-                      </span>
-                    )}
-                  </div>
-
-                  {/* LIST */}
                   <div className="space-y-2">
-                    {task.subTasks?.length > 0 &&
-                      task.subTasks.map((sub, index) => (
-                        <label
-                          key={index}
-                          className={`flex items-center gap-2 text-sm
-                            ${
-                              isInProgress
-                                ? "text-gray-700 cursor-pointer"
-                                : "text-gray-400 cursor-not-allowed"
-                            }`}
-                        >
-                          <input
-                            type="checkbox"
-                            className="accent-purple-600"
-                            disabled={!isInProgress}
-                            checked={sub.isChecked}
-                            onChange={() => {
-                              dispatch({
-                                type: "UPDATE_SUBTASK",
-                                payload: {
-                                  id: task.id,
-                                  subTitle: sub.title,
-                                },
-                              });
-                            }}
-                          />
+                    {task.subTasks.map((sub, index) => (
+                      <label
+                        key={index}
+                        className={`flex items-center gap-2 text-sm ${
+                          isInProgress
+                            ? "text-gray-700"
+                            : "text-gray-400 cursor-not-allowed"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          disabled={!isInProgress}
+                          checked={sub.isChecked}
+                          onChange={() =>
+                            dispatch({
+                              type: "UPDATE_SUBTASK",
+                              payload: {
+                                id: task.id,
+                                subTitle: sub.title,
+                              },
+                            })
+                          }
+                        />
 
-                          <span
-                            className={`flex-1 ${
-                              isDone ? "line-through opacity-70" : ""
-                            }`}
-                          >
-                            {sub.title}
-                          </span>
-                        </label>
-                      ))}
+                        <span
+                          className={`${sub.isChecked ? "line-through opacity-70" : ""}`}
+                        >
+                          {sub.title}
+                        </span>
+                      </label>
+                    ))}
                   </div>
                 </div>
               )}
