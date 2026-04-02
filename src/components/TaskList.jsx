@@ -6,7 +6,7 @@ import { generateSubTasks } from "../api/api";
 function TaskList() {
   const [openTaskId, setOpenTaskId] = useState(null);
   const [editedText, setEditedText] = useState({});
-  const [subTaskLoading, setSubTaskLoading] = useState(false);
+  const [subTaskLoading, setSubTaskLoading] = useState({});
   const [showWarning, setShowWarning] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const { state, dispatch } = useContext(TaskContext);
@@ -61,7 +61,7 @@ function TaskList() {
 
   const handleSubTasks = async (task) => {
     try {
-      setSubTaskLoading(true);
+      setSubTaskLoading((prev) => ({ ...prev, [task.id]: true }));
       const res = await generateSubTasks(task.title);
       console.log(res, "response");
       if (res.success && res.data) {
@@ -94,9 +94,9 @@ function TaskList() {
         },
       );
       console.log(error);
-      setSubTaskLoading(false);
+      setSubTaskLoading((prev) => ({ ...prev, [task.id]: false }));
     } finally {
-      setSubTaskLoading(false);
+      setSubTaskLoading((prev) => ({ ...prev, [task.id]: false }));
     }
   };
 
@@ -127,7 +127,7 @@ function TaskList() {
                   }}
                 >
                   {task.isEdit ? (
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-center gap-2">
                       <input
                         type="text"
                         autoFocus
@@ -205,7 +205,7 @@ function TaskList() {
                           )}
 
                           {hasSubTasks && (
-                            <span className="text-purple-500 text-sm">
+                            <span className="text-purple-500 text-sm cursor-pointer">
                               {isOpen ? "▲" : "▼"}
                             </span>
                           )}
@@ -231,7 +231,7 @@ function TaskList() {
                   {/* AI BUTTON */}
                   {!isDone && (
                     <button
-                      disabled={hasSubTasks || subTaskLoading}
+                      disabled={hasSubTasks || subTaskLoading?.[task.id]}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSubTasks(task);
@@ -240,12 +240,14 @@ function TaskList() {
                   ${
                     hasSubTasks
                       ? "bg-gray-200 text-gray-400"
-                      : subTaskLoading
+                      : subTaskLoading[task.id]
                         ? "bg-purple-300 text-white"
                         : "bg-gradient-to-r from-purple-500 to-indigo-500 text-white"
                   }`}
                     >
-                      {subTaskLoading ? "⏳ Generating" : "✨ AI Subtasks"}
+                      {subTaskLoading[task.id]
+                        ? "⏳ Generating"
+                        : "✨ AI Subtasks"}
                     </button>
                   )}
 
@@ -279,6 +281,14 @@ function TaskList() {
                         type: "DELETE_TASK",
                         payload: task.id,
                       });
+                      setSubTaskLoading((prev) => {
+                        const { [task.id]: _, ...rest } = prev;
+                        return rest;
+                      });
+                      setEditedText((prev) => {
+                        const { [task.id]: _, ...rest } = prev;
+                        return rest;
+                      });
                     }}
                   >
                     ❌
@@ -289,13 +299,15 @@ function TaskList() {
               {/* 🔥 SUBTASK SECTION */}
               {isOpen && hasSubTasks && (
                 <div className="bg-gray-50 px-5 pb-5 space-y-3 border-t pt-3 mt-3">
-                  <p className="text-sm font-medium text-gray-700">Subtasks</p>
+                  <div className="flex justify-between gap-2 items-center">
+                    <p className=" font-medium text-gray-800">Subtasks</p>
 
-                  {task.status === "Todo" && (
-                    <span className="text-xs text-gray-400">
-                      Switch to In-Progress to enable
-                    </span>
-                  )}
+                    {task.status === "Todo" && (
+                      <span className="text-xs text-gray-400">
+                        Switch to In-Progress to enable
+                      </span>
+                    )}
+                  </div>
 
                   <div className="space-y-2">
                     {task.subTasks.map((sub, index) => (
@@ -393,6 +405,10 @@ function TaskList() {
                   dispatch({
                     type: "CLEAR_SUBTASKS",
                     payload: selectedTask.id,
+                  });
+                  setSubTaskLoading((prev) => {
+                    const { [selectedTask.id]: _, ...rest } = prev;
+                    return rest;
                   });
 
                   // enable edit
