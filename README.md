@@ -15,7 +15,9 @@
 
 ## Screenshot
 
-<img src="setup.png"/>
+<img src="screenshot.png"/>
+
+## 🌐 **Live Demo:** https://ai-smart-manager.vercel.app/
 
 ---
 
