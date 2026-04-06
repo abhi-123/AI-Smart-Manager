@@ -2,11 +2,13 @@
 
 # AI Smart Manager 🤖✅
 
-**A lightweight task manager with an AI-powered assistant to help you plan, prioritize, and stay on track.**
+**A task manager with JWT auth, MongoDB storage, and an AI microservice that generates subtasks.**
 
 [![Frontend](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react&logoColor=000)](#-tech-stack)
-[![Backend](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=fff)](#-tech-stack)
-[![Language](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=fff)](#-tech-stack)
+[![Backend](https://img.shields.io/badge/Backend-Express-000000?logo=express&logoColor=fff)](#-tech-stack)
+[![Database](https://img.shields.io/badge/Database-MongoDB-47A248?logo=mongodb&logoColor=fff)](#-tech-stack)
+[![AI%20Microservice](https://img.shields.io/badge/AI%20Microservice-FastAPI-009688?logo=fastapi&logoColor=fff)](#-tech-stack)
+[![Language](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=fff)](#-tech-stack)
 [![License](https://img.shields.io/badge/License-MIT-informational)](#-license)
 
 </div>
@@ -23,18 +25,18 @@
 
 ## ✨ Highlights
 
-- **🧠 AI assistance**: generate suggestions for tasks, prioritization, and planning help.
-- **🗂️ Task management**: create, update, organize, and track tasks.
-- **⚡ Fast local dev**: React frontend + FastAPI backend.
-- **🧩 Clean architecture**: separate frontend (`/src`) and backend (`/backend`).
+- **🔐 Auth**: signup/login with JWT.
+- **🗂️ Tasks**: CRUD, status toggle, subtasks.
+- **🧠 AI subtasks**: generate 3–5 actionable subtasks via a Python microservice.
+- **⚡ Local dev**: Vite frontend + Express API + FastAPI AI service.
 
 ---
 
 ## 🧰 Tech Stack
 
-- **Frontend**: React (Vite) ⚛️
-- **Backend**: FastAPI ⚡
-- **AI service**: Python service wrapper (see `backend/services/ai_service.py`) 🤖
+- **Frontend**: React 19 + Vite + Tailwind CSS
+- **Backend API**: Node.js + Express + Mongoose (MongoDB) + JWT
+- **AI microservice**: FastAPI + OpenAI SDK
 
 ---
 
@@ -42,19 +44,26 @@
 
 ```text
 AI-Smart-Manager/
-  backend/                 # FastAPI backend
+  src/                     # React frontend (Vite)
+    api/
+      api.js
+    components/
+    App.jsx
+    main.jsx
+  backend/                 # Node/Express API (MongoDB + JWT)
+    server.js
+    routes/
+      auth.js
+      task.js
+    models/
+      User.js
+      Task.js
+    .env                   # backend env vars (keep private)
+  ai_backend/              # Python FastAPI microservice (OpenAI)
     main.py
     services/
       ai_service.py
-    models/
-      request_models.py
-    .env                   # backend env vars (keep private)
-  src/                     # React frontend
-    App.jsx
-    components/
-      TaskList.jsx
-    api/
-      api.js
+    .env                   # OPENAI_API_KEY (keep private)
   README.md
 ```
 
@@ -62,21 +71,43 @@ AI-Smart-Manager/
 
 ## 🚀 Quick Start
 
-### 1) Backend (FastAPI)
+### Prereqs
+
+- **Node.js** (for frontend + Node backend)
+- **Python 3.12+** (for `ai_backend/`)
+- **MongoDB connection string** (local MongoDB or MongoDB Atlas)
+
+### 1) AI microservice (FastAPI, port `8001`)
+
+From the project root:
+
+```bash
+cd ai_backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+
+# If you have requirements.txt, use it. Otherwise install from pyproject deps.
+pip install -r requirements.txt || pip install "fastapi" "uvicorn" "openai" "python-dotenv"
+
+uvicorn main:app --reload --port 8001
+```
+
+AI service: `http://localhost:8001`
+
+### 2) Backend API (Express, port `8000`)
 
 From the project root:
 
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+npm install
+npm run dev
 ```
 
-Backend should be available at `http://localhost:8000`.
+API: `http://localhost:8000`
 
-### 2) Frontend (React)
+### 3) Frontend (React/Vite, port `5173`)
 
 From the project root:
 
@@ -85,67 +116,60 @@ npm install
 npm run dev
 ```
 
-Frontend should be available at the URL printed by Vite (usually `http://localhost:5173`).
+Frontend: `http://localhost:5173`
 
 ---
 
 ## 🔑 Environment Variables
 
-The backend reads environment variables from `backend/.env`.
+### `backend/.env` (Node API)
 
-Create/Update:
+Create `backend/.env` with:
 
 ```bash
-cp backend/.env backend/.env
+MONGO_URI="mongodb+srv://..."
+JWT_SECRET="replace-me"
 ```
 
-Then set the AI key(s) expected by your `backend/services/ai_service.py`.
+### `ai_backend/.env` (AI microservice)
 
-> Tip: If you’re not sure which variable names are required, search that file for `os.getenv(...)` or config references.
+Create `ai_backend/.env` with:
+
+```bash
+OPENAI_API_KEY="replace-me"
+```
 
 ---
 
 ## 🔌 API
 
-The frontend calls the backend via `src/api/api.js`.
+The frontend uses `src/api/api.js` and includes `Authorization: Bearer <token>` for protected routes.
 
-Common setup assumptions:
+Default ports:
 
-- **Frontend** runs on port `5173`
-- **Backend** runs on port `8000`
-- If you run on different ports/hosts, update the base URL in `src/api/api.js`.
+- **Frontend**: `5173`
+- **Backend API**: `8000`
+- **AI microservice**: `8001`
 
----
+Key endpoints:
 
-## 🖼️ Screenshots
-
-Add screenshots/gifs here to make the project pop:
-
-- `docs/screenshots/dashboard.png`
-- `docs/screenshots/ai-suggestions.png`
-
-Then reference them like:
-
-```md
-![Dashboard](docs/screenshots/dashboard.png)
-```
+- **`POST /auth/signup`**: create user
+- **`POST /auth/login`**: returns `{ token }`
+- **`GET /tasks`**: list tasks (auth required)
+- **`POST /tasks`**: create task (auth required)
+- **`PUT /tasks/:id/toggle`**: advance status (auth required)
+- **`PATCH /tasks/:id`**: edit title (auth required)
+- **`DELETE /tasks/:id`**: delete (auth required)
+- **`PATCH /tasks/:id/subtasks`**: generate & attach subtasks (auth required; backend calls AI service `POST /generate-subtasks`)
 
 ---
 
 ## 🧪 Troubleshooting
 
 - **CORS errors**: ensure the backend allows your frontend origin (e.g. `http://localhost:5173`).
-- **AI not responding**: verify your `backend/.env` values and restart the backend server.
-- **Frontend can’t reach backend**: confirm backend URL/port in `src/api/api.js`.
-
----
-
-## 🗺️ Roadmap (Ideas)
-
-- **📌 Priorities & due dates** (and smarter sorting)
-- **🔔 Reminders** and recurring tasks
-- **👥 Multi-user auth** (accounts + sync)
-- **📊 Productivity insights** (weekly summaries)
+- **AI not responding**: ensure `ai_backend` is running on port `8001` and `OPENAI_API_KEY` is set.
+- **Frontend can’t reach backend**: confirm the backend base URL in `src/api/api.js`.
+- **Mongo connection errors**: verify `MONGO_URI` and that your IP is allowed (Atlas).
 
 ---
 
@@ -162,3 +186,4 @@ PRs are welcome.
 ## 📄 License
 
 MIT (adjust if your project uses a different license).
+

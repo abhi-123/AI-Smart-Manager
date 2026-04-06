@@ -1,12 +1,39 @@
 import { useState, useContext } from "react";
-import { TaskContext } from "./TaskContext";
+import { TaskContext } from "../context/TaskContext";
+import toast from "react-hot-toast";
+import { addTask } from "../api/api";
 
 function AddTask() {
   const { dispatch } = useContext(TaskContext);
+
   const [task, setTask] = useState("");
 
-  const submitTask = (task) => {
-    dispatch({ type: "ADD_TASK", payload: task });
+  const submitTask = async (task) => {
+    try {
+      const data = await addTask(task);
+      console.log(data, "response");
+      if (data.task) dispatch({ type: "ADD_TASK", payload: data.task });
+    } catch (error) {
+      toast.custom(
+        () => (
+          <div className="bg-[#1f1f1f] text-white px-5 py-4 rounded-2xl shadow-xl border border-white/10 w-[340px]">
+            <div className="flex items-start gap-3">
+              <span className="text-yellow-400 text-lg">⚠️</span>
+              <div>
+                <p className="font-medium">Failed to add task</p>
+                <p className="text-sm text-gray-400">
+                  Please check your connection and try again.
+                </p>
+              </div>
+            </div>
+          </div>
+        ),
+        {
+          duration: 3000,
+        },
+      );
+      console.log(error);
+    }
   };
   return (
     <div className="bg-white p-5 rounded-2xl shadow flex gap-3 flex-col md:flex-row">

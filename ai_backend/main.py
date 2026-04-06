@@ -18,9 +18,7 @@ app.add_middleware(
 async def generate_project_subtasks(data: SubTaskRequest):
     try:
         result = await generate_subtasks(data)
-        return {
-            "success": True,
-            "data": result
-        }
+        print(result)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

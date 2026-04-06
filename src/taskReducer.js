@@ -6,31 +6,32 @@ export const initialState = {
 };
 export const taskReducer = (state, action) => {
   switch (action.type) {
+    case "GET_ALL_TASKS": {
+      return {
+        ...state,
+        taskList: action.payload,
+      };
+    }
     case "ADD_TASK": {
       const AlreadyExistTask = state.taskList.filter(
-        (task) => task.title === action.payload,
+        (task) => task.title === action.payload.title,
       );
       if (AlreadyExistTask.length > 0) {
         alert("Task Already Exist!");
       }
+      console.log(action.payload);
       return {
         ...state,
-        taskList: [
-          {
-            id: Date.now(),
-            title: action.payload,
-            status: "Todo",
-            time: Date.now(),
-          },
-          ...state.taskList,
-        ],
+        taskList: [action.payload, ...state.taskList],
       };
     }
     case "TOGGLE_EDIT_TASK": {
       return {
         ...state,
         taskList: state.taskList.map((task) =>
-          action.payload === task.id ? { ...task, isEdit: !task.isEdit } : task,
+          action.payload === task._id
+            ? { ...task, isEdit: !task.isEdit }
+            : task,
         ),
       };
     }
@@ -38,8 +39,8 @@ export const taskReducer = (state, action) => {
       return {
         ...state,
         taskList: state.taskList.map((task) =>
-          action.payload.id === task.id
-            ? { ...task, title: action.payload.newTitle, isEdit: !task.isEdit }
+          action.payload._id === task._id
+            ? { ...action.payload, isEdit: !task.isEdit }
             : task,
         ),
       };
@@ -47,20 +48,14 @@ export const taskReducer = (state, action) => {
     case "DELETE_TASK": {
       return {
         ...state,
-        taskList: state.taskList.filter((task) => task.id !== action.payload),
+        taskList: state.taskList.filter((task) => task._id !== action.payload),
       };
     }
     case "TOGGLE_STATUS": {
-      const newTaskStatusObj = {
-        Todo: "In-Progress",
-        "In-Progress": "Done",
-      };
       return {
         ...state,
         taskList: state.taskList.map((task) =>
-          action.payload === task.id
-            ? { ...task, status: newTaskStatusObj[task.status] || task.status }
-            : task,
+          action.payload._id === task._id ? action.payload : task,
         ),
       };
     }
@@ -68,7 +63,7 @@ export const taskReducer = (state, action) => {
       return {
         ...state,
         taskList: state.taskList.map((task) =>
-          action.payload.id === task.id
+          action.payload.id === task._id
             ? { ...task, subTasks: action.payload.subTasks }
             : task,
         ),
@@ -78,9 +73,9 @@ export const taskReducer = (state, action) => {
       return {
         ...state,
         taskList: state.taskList.map((task) => {
-          if (task.id !== action.payload.id) return task;
+          if (task._id !== action.payload.id) return task;
           const updatedSubTasks = task.subTasks.map((subTask) => {
-            if (subTask.title !== action.payload.subTitle) return subTask;
+            if (subTask._id !== action.payload.subId) return subTask;
             return {
               ...subTask,
               isChecked: !subTask.isChecked,
@@ -99,7 +94,7 @@ export const taskReducer = (state, action) => {
       return {
         ...state,
         taskList: state.taskList.map((task) =>
-          task.id === action.payload
+          task._id === action.payload
             ? { ...task, subTasks: [], status: "Todo" }
             : task,
         ),

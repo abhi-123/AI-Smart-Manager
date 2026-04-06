@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { TaskContext } from "./TaskContext";
+import { TaskContext } from "../context/TaskContext";
 
 function Filters() {
   const { state, dispatch } = useContext(TaskContext);

@@ -1,7 +1,14 @@
-import { useContext, useState } from "react";
-import { TaskContext } from "./TaskContext";
+import { useContext, useEffect, useState, useRef } from "react";
+import { TaskContext } from "../context/TaskContext";
 import toast from "react-hot-toast";
-import { generateSubTasks } from "../api/api";
+import {
+  deleteTask,
+  editTask,
+  generateSubTasks,
+  getTasks,
+  toggleStatus,
+  toggleSubTaskData,
+} from "../api/api";
 
 function TaskList() {
   const [openTaskId, setOpenTaskId] = useState(null);
@@ -9,9 +16,42 @@ function TaskList() {
   const [subTaskLoading, setSubTaskLoading] = useState({});
   const [showWarning, setShowWarning] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+  const toggleMapRef = useRef({});
   const { state, dispatch } = useContext(TaskContext);
 
   let filteredData = state.taskList;
+
+  useEffect(() => {
+    const getTasksData = async () => {
+      try {
+        const data = await getTasks();
+        console.log(data, "response");
+        if (data.success)
+          dispatch({ type: "GET_ALL_TASKS", payload: data.tasks });
+      } catch (error) {
+        toast.custom(
+          () => (
+            <div className="bg-[#1f1f1f] text-white px-5 py-4 rounded-2xl shadow-xl border border-white/10 w-[340px]">
+              <div className="flex items-start gap-3">
+                <span className="text-yellow-400 text-lg">⚠️</span>
+                <div>
+                  <p className="font-medium">Failed to get tasks</p>
+                  <p className="text-sm text-gray-400">
+                    Please check your connection and try again.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ),
+          {
+            duration: 3000,
+          },
+        );
+        console.log(error);
+      }
+    };
+    getTasksData();
+  }, []);
 
   if (state.search) {
     filteredData = state.taskList.filter((task) =>
@@ -25,7 +65,10 @@ function TaskList() {
     );
   }
 
+  console.log(state.taskList);
+
   const getRelativeTime = (date) => {
+    console.log(date);
     const now = new Date();
     const past = new Date(date);
     const diff = Math.floor((now - past) / 1000);
@@ -37,42 +80,157 @@ function TaskList() {
     return `${Math.floor(diff / 86400)} days ago`;
   };
 
+  const handleToggleStatus = async (id) => {
+    try {
+      const data = await toggleStatus(id);
+      console.log(data, "response");
+      if (data.success)
+        dispatch({
+          type: "TOGGLE_STATUS",
+          payload: data.task,
+        });
+    } catch (error) {
+      toast.custom(
+        () => (
+          <div className="bg-[#1f1f1f] text-white px-5 py-4 rounded-2xl shadow-xl border border-white/10 w-[340px]">
+            <div className="flex items-start gap-3">
+              <span className="text-yellow-400 text-lg">⚠️</span>
+              <div>
+                <p className="font-medium">Failed to add task</p>
+                <p className="text-sm text-gray-400">
+                  Please check your connection and try again.
+                </p>
+              </div>
+            </div>
+          </div>
+        ),
+        {
+          duration: 3000,
+        },
+      );
+      console.log(error);
+    }
+  };
+
   const taskColor = {
     Todo: "bg-purple-100 text-purple-600",
     "In-Progress": "bg-yellow-100 text-yellow-600",
     Done: "bg-green-100 text-green-600",
   };
 
-  const handleEdit = (task) => {
+  const handleEdit = async (task) => {
+    try {
+      const data = await editTask(task._id, editedText[task._id]);
+      console.log(data, "response");
+      if (data.success) {
+        //  const updatedValue = editedText[task._id];
+        dispatch({
+          type: "UPDATE_TASK",
+          payload: data.task,
+        });
+        setEditedText((prev) => {
+          const { [task._id]: _, ...rest } = prev;
+          return rest;
+        });
+      }
+    } catch (error) {
+      toast.custom(
+        () => (
+          <div className="bg-[#1f1f1f] text-white px-5 py-4 rounded-2xl shadow-xl border border-white/10 w-[340px]">
+            <div className="flex items-start gap-3">
+              <span className="text-yellow-400 text-lg">⚠️</span>
+              <div>
+                <p className="font-medium">Failed to add task</p>
+                <p className="text-sm text-gray-400">
+                  Please check your connection and try again.
+                </p>
+              </div>
+            </div>
+          </div>
+        ),
+        {
+          duration: 3000,
+        },
+      );
+      console.log(error);
+    }
+
     console.log(editedText);
-    const updatedValue = editedText[task.id];
-    dispatch({
-      type: "UPDATE_TASK",
-      payload: {
-        id: task.id,
-        newTitle: updatedValue,
-      },
-    });
-    setEditedText((prev) => {
-      const { [task.id]: _, ...rest } = prev;
-      return rest;
-    });
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      const data = await deleteTask(id);
+      console.log(data, "response");
+      if (data.success) {
+        toast.custom(
+          () => (
+            <div className="bg-[#1f1f1f] text-white px-5 py-4 rounded-2xl shadow-xl border border-white/10 w-[340px]">
+              <div className="flex items-start gap-3">
+                {/* <span className="text-green-400 text-lg">✔️</span> */}
+                <div>
+                  <p className="font-medium">Task deleted</p>
+                  <p className="text-sm text-gray-400">
+                    Your task has been removed successfully.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ),
+          {
+            duration: 2000,
+          },
+        );
+        dispatch({
+          type: "DELETE_TASK",
+          payload: id,
+        });
+        setSubTaskLoading((prev) => {
+          const { [id]: _, ...rest } = prev;
+          return rest;
+        });
+        setEditedText((prev) => {
+          const { [id]: _, ...rest } = prev;
+          return rest;
+        });
+      }
+    } catch (error) {
+      toast.custom(
+        () => (
+          <div className="bg-[#1f1f1f] text-white px-5 py-4 rounded-2xl shadow-xl border border-white/10 w-[340px]">
+            <div className="flex items-start gap-3">
+              <span className="text-yellow-400 text-lg">⚠️</span>
+              <div>
+                <p className="font-medium">Failed to delete task</p>
+                <p className="text-sm text-gray-400">
+                  Please check your connection and try again.
+                </p>
+              </div>
+            </div>
+          </div>
+        ),
+        {
+          duration: 3000,
+        },
+      );
+      console.log(error);
+    }
   };
 
   const handleSubTasks = async (task) => {
     try {
-      setSubTaskLoading((prev) => ({ ...prev, [task.id]: true }));
-      const res = await generateSubTasks(task.title);
+      setSubTaskLoading((prev) => ({ ...prev, [task._id]: true }));
+      const res = await generateSubTasks(task._id, task.title);
       console.log(res, "response");
-      if (res.success && res.data) {
+      if (res.success && res.task && res.task.subTasks.length > 0) {
         dispatch({
           type: "GENERATE_SUBTASKS",
           payload: {
-            id: task.id,
-            subTasks: res.data.subTasks,
+            id: task._id,
+            subTasks: res.task.subTasks,
           },
         });
-        setOpenTaskId(task.id);
+        setOpenTaskId(task._id);
       }
     } catch (error) {
       toast.custom(
@@ -94,9 +252,61 @@ function TaskList() {
         },
       );
       console.log(error);
-      setSubTaskLoading((prev) => ({ ...prev, [task.id]: false }));
+      setSubTaskLoading((prev) => ({ ...prev, [task._id]: false }));
     } finally {
-      setSubTaskLoading((prev) => ({ ...prev, [task.id]: false }));
+      setSubTaskLoading((prev) => ({ ...prev, [task._id]: false }));
+    }
+  };
+
+  const toggleSubTask = async (taskID, subtaskID) => {
+    if (toggleMapRef.current[subtaskID]) return;
+    toggleMapRef.current[subtaskID] = true;
+    try {
+      dispatch({
+        type: "UPDATE_SUBTASK",
+        payload: {
+          id: taskID,
+          subId: subtaskID,
+        },
+      });
+
+      const res = await toggleSubTaskData(taskID, subtaskID);
+      console.log(res, "response");
+      if (res.success) {
+        toggleMapRef.current[subtaskID] = false;
+      }
+    } catch (error) {
+      setTimeout(() => {
+        dispatch({
+          type: "UPDATE_SUBTASK",
+          payload: {
+            id: taskID,
+            subId: subtaskID,
+          },
+        });
+        toggleMapRef.current[subtaskID] = false;
+      }, 500);
+
+      toast.custom(
+        () => (
+          <div className="bg-[#1f1f1f] text-white px-5 py-4 rounded-2xl shadow-xl border border-white/10 w-[340px]">
+            <div className="flex items-start gap-3">
+              <span className="text-yellow-400 text-lg">⚠️</span>
+              <div>
+                <p className="font-medium">Failed to update subtask</p>
+                <p className="text-sm text-gray-400">
+                  Please check your connection and try again.
+                </p>
+              </div>
+            </div>
+          </div>
+        ),
+        {
+          duration: 3000,
+        },
+      );
+
+      console.log(error);
     }
   };
 
@@ -107,11 +317,11 @@ function TaskList() {
           const isInProgress = task.status === "In-Progress";
           const isDone = task.status === "Done";
           const hasSubTasks = task.subTasks?.length > 0;
-          const isOpen = openTaskId === task.id;
+          const isOpen = openTaskId === task._id;
 
           return (
             <div
-              key={task.id}
+              key={task._id}
               className="bg-white rounded-2xl shadow overflow-hidden hover:bg-gray-50 transition hover:shadow-md hover:-translate-y-[1px]"
             >
               {/* 🔹 MAIN TASK */}
@@ -123,7 +333,7 @@ function TaskList() {
                     e.stopPropagation();
                     if (task.isEdit) return;
                     if (!hasSubTasks) return; // 🔥 FIX
-                    setOpenTaskId(isOpen ? null : task.id);
+                    setOpenTaskId(isOpen ? null : task._id);
                   }}
                 >
                   {task.isEdit ? (
@@ -131,12 +341,12 @@ function TaskList() {
                       <input
                         type="text"
                         autoFocus
-                        value={editedText[task.id] ?? ""}
+                        value={editedText[task._id] ?? ""}
                         className="flex-1 p-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-400"
                         onChange={(e) => {
                           setEditedText((prev) => ({
                             ...prev,
-                            [task.id]: e.target.value,
+                            [task._id]: e.target.value,
                           }));
                         }}
                         onKeyDown={(e) => {
@@ -147,8 +357,8 @@ function TaskList() {
                       />
 
                       <button
-                        className={`text-green-600 text-sm hover:scale-110 transition ${!editedText[task.id]?.trim() ? "cursor-not-allowed disabled:opacity-50" : "cursor-pointer"}`}
-                        disabled={!editedText[task.id]?.trim()}
+                        className={`text-green-600 text-sm hover:scale-110 transition ${!editedText[task._id]?.trim() ? "cursor-not-allowed disabled:opacity-50" : "cursor-pointer"}`}
+                        disabled={!editedText[task._id]?.trim()}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleEdit(task);
@@ -163,7 +373,7 @@ function TaskList() {
                           e.stopPropagation();
                           dispatch({
                             type: "TOGGLE_EDIT_TASK",
-                            payload: task.id,
+                            payload: task._id,
                           });
                         }}
                       >
@@ -191,12 +401,12 @@ function TaskList() {
 
                                 setEditedText((prev) => ({
                                   ...prev,
-                                  [task.id]: task.title,
+                                  [task._id]: task.title,
                                 }));
 
                                 dispatch({
                                   type: "TOGGLE_EDIT_TASK",
-                                  payload: task.id,
+                                  payload: task._id,
                                 });
                               }}
                             >
@@ -213,7 +423,7 @@ function TaskList() {
                       </div>
 
                       <p className="text-xs text-gray-400 mt-1">
-                        {getRelativeTime(task.time)}
+                        {getRelativeTime(task.createdAt)}
                       </p>
                     </>
                   )}
@@ -231,7 +441,7 @@ function TaskList() {
                   {/* AI BUTTON */}
                   {!isDone && (
                     <button
-                      disabled={hasSubTasks || subTaskLoading?.[task.id]}
+                      disabled={hasSubTasks || subTaskLoading?.[task._id]}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSubTasks(task);
@@ -240,12 +450,12 @@ function TaskList() {
                   ${
                     hasSubTasks
                       ? "bg-gray-200 text-gray-400"
-                      : subTaskLoading[task.id]
+                      : subTaskLoading[task._id]
                         ? "bg-purple-300 text-white"
                         : "bg-gradient-to-r from-purple-500 to-indigo-500 text-white"
                   }`}
                     >
-                      {subTaskLoading[task.id]
+                      {subTaskLoading[task._id]
                         ? "⏳ Generating"
                         : "✨ AI Subtasks"}
                     </button>
@@ -263,9 +473,10 @@ function TaskList() {
                     disabled={isDone}
                     onClick={(e) => {
                       e.stopPropagation();
+                      handleToggleStatus(task._id);
                       dispatch({
                         type: "TOGGLE_STATUS",
-                        payload: task.id,
+                        payload: task._id,
                       });
                     }}
                   >
@@ -277,18 +488,7 @@ function TaskList() {
                     className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
-                      dispatch({
-                        type: "DELETE_TASK",
-                        payload: task.id,
-                      });
-                      setSubTaskLoading((prev) => {
-                        const { [task.id]: _, ...rest } = prev;
-                        return rest;
-                      });
-                      setEditedText((prev) => {
-                        const { [task.id]: _, ...rest } = prev;
-                        return rest;
-                      });
+                      handleDelete(task._id);
                     }}
                   >
                     ❌
@@ -323,15 +523,9 @@ function TaskList() {
                           type="checkbox"
                           disabled={!isInProgress}
                           checked={sub.isChecked}
-                          onChange={() =>
-                            dispatch({
-                              type: "UPDATE_SUBTASK",
-                              payload: {
-                                id: task.id,
-                                subTitle: sub.title,
-                              },
-                            })
-                          }
+                          onChange={() => {
+                            toggleSubTask(task._id, sub._id);
+                          }}
                         />
 
                         <span
@@ -404,22 +598,22 @@ function TaskList() {
                   // clear subtasks
                   dispatch({
                     type: "CLEAR_SUBTASKS",
-                    payload: selectedTask.id,
+                    payload: selectedTask._id,
                   });
                   setSubTaskLoading((prev) => {
-                    const { [selectedTask.id]: _, ...rest } = prev;
+                    const { [selectedTask._id]: _, ...rest } = prev;
                     return rest;
                   });
 
                   // enable edit
                   dispatch({
                     type: "TOGGLE_EDIT_TASK",
-                    payload: selectedTask.id,
+                    payload: selectedTask._id,
                   });
 
                   setEditedText((prev) => ({
                     ...prev,
-                    [selectedTask.id]: selectedTask.title,
+                    [selectedTask._id]: selectedTask.title,
                   }));
 
                   setShowWarning(false);
