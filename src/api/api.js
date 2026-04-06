@@ -1,5 +1,18 @@
 const baseURl = "https://ai-smart-manager-node-backend.onrender.com";
 //const baseURl = "http://127.0.0.1:8000";
+
+export const handleLoginSignup = async (url, form) => {
+  const res = await fetch(baseURl + url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(form),
+  });
+
+  const data = await res.json();
+  return data;
+};
 export const getTasks = async () => {
   const res = await fetch(baseURl + "/tasks", {
     method: "GET",

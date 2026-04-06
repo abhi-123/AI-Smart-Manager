@@ -1,6 +1,8 @@
 import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import toast from "react-hot-toast";
+import { handleLoginSignup } from "../api/api";
 
 function Login() {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,24 +15,14 @@ function Login() {
   };
 
   const handleSubmit = async () => {
-    const url = isLogin
-      ? "http://localhost:8000/auth/login"
-      : "http://localhost:8000/auth/signup";
+    const url = isLogin ? "/auth/login" : "/auth/signup";
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(form),
-    });
-
-    const data = await res.json();
-
+    const data = await handleLoginSignup(url, form);
+    console.log(data);
     if (data.token) {
       login(data.token);
     } else {
-      alert(data.error || data.message);
+      toast.error(data.error || data.message);
     }
   };
 
