@@ -68,19 +68,35 @@ router.patch("/:id", async (req, res) => {
   try {
     const { title } = req.body;
 
-    const task = await Task.findByIdAndUpdate(
+    const task = await Task.findById(req.params.id);
+
+    let updatedFields = {};
+
+    // 🔥 check if title changed
+    if (title && title !== task.title) {
+      updatedFields.title = title;
+
+      // 🔥 reset subtasks ONLY if exist
+      if (task.subTasks && task.subTasks.length > 0) {
+        updatedFields.subTasks = [];
+        updatedFields.status = "Todo";
+      }
+    }
+
+    const updatedTask = await Task.findByIdAndUpdate(
       req.params.id,
-      { title },
+      updatedFields,
       { new: true },
     );
+    console.log(updatedTask);
 
     res.json({
-      message: "Task edited successfully 🚀",
-      task,
+      task: updatedTask,
       success: true,
+      message: "Task edited successfully 🚀",
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message, success: false });
   }
 });
 

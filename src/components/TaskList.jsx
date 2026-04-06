@@ -11,6 +11,7 @@ import {
 } from "../api/api";
 
 function TaskList() {
+  const [loading, setLoading] = useState(false);
   const [openTaskId, setOpenTaskId] = useState(null);
   const [editedText, setEditedText] = useState({});
   const [subTaskLoading, setSubTaskLoading] = useState({});
@@ -20,10 +21,20 @@ function TaskList() {
   const { state, dispatch } = useContext(TaskContext);
 
   let filteredData = state.taskList;
+  const Skeleton = () => {
+    return (
+      <div className="animate-pulse space-y-4 p-4">
+        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+        <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+        <div className="h-20 bg-gray-300 rounded"></div>
+      </div>
+    );
+  };
 
   useEffect(() => {
     const getTasksData = async () => {
       try {
+        setLoading(true);
         const data = await getTasks();
         console.log(data, "response");
         if (data.success)
@@ -48,6 +59,8 @@ function TaskList() {
           },
         );
         console.log(error);
+      } finally {
+        setLoading(false);
       }
     };
     getTasksData();
@@ -118,11 +131,21 @@ function TaskList() {
     Done: "bg-green-100 text-green-600",
   };
 
-  const handleEdit = async (task) => {
+  const handleEdit = async (task, clearSubTasks) => {
     try {
       const data = await editTask(task._id, editedText[task._id]);
       console.log(data, "response");
       if (data.success) {
+        if (clearSubTasks) {
+          dispatch({
+            type: "CLEAR_SUBTASKS",
+            payload: task._id,
+          });
+          setSubTaskLoading((prev) => {
+            const { [task._id]: _, ...rest } = prev;
+            return rest;
+          });
+        }
         //  const updatedValue = editedText[task._id];
         dispatch({
           type: "UPDATE_TASK",
@@ -312,7 +335,9 @@ function TaskList() {
 
   return (
     <div className="space-y-4">
-      {filteredData?.length > 0 ? (
+      {loading ? (
+        <Skeleton />
+      ) : filteredData?.length > 0 ? (
         filteredData.map((task) => {
           const isInProgress = task.status === "In-Progress";
           const isDone = task.status === "Done";
@@ -328,7 +353,7 @@ function TaskList() {
               <div className="p-5 flex flex-col gap-3 md:flex-row md:justify-between md:items-center">
                 {/* 🔹 LEFT SECTION */}
                 <div
-                  className="w-full"
+                  className="flex-1 min-w-0"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (task.isEdit) return;
@@ -351,16 +376,35 @@ function TaskList() {
                         }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
+                            e.stopPropagation();
+                            if (hasSubTasks) {
+                              setSelectedTask(task);
+                              setShowWarning(true);
+                              return;
+                            }
                             handleEdit(task);
                           }
                         }}
                       />
 
                       <button
-                        className={`text-green-600 text-sm hover:scale-110 transition ${!editedText[task._id]?.trim() ? "cursor-not-allowed disabled:opacity-50" : "cursor-pointer"}`}
-                        disabled={!editedText[task._id]?.trim()}
+                        className={`text-green-600 text-sm hover:scale-110 transition ${
+                          !editedText[task._id]?.trim() ||
+                          editedText[task._id]?.trim() === task?.title?.trim()
+                            ? "cursor-not-allowed disabled:opacity-50"
+                            : "cursor-pointer"
+                        }`}
+                        disabled={
+                          !editedText[task._id]?.trim() ||
+                          editedText[task._id]?.trim() === task.title?.trim()
+                        }
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (hasSubTasks) {
+                            setSelectedTask(task);
+                            setShowWarning(true);
+                            return;
+                          }
                           handleEdit(task);
                         }}
                       >
@@ -385,41 +429,35 @@ function TaskList() {
                       <div className="flex items-center gap-2 justify-between md:justify-start">
                         <p className="text-gray-800 font-medium break-words leading-relaxed">
                           {task.title}
+                          <span className="flex gap-2">
+                            {!isDone && (
+                              <button
+                                className="text-gray-400 hover:text-purple-600 transition cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+
+                                  setEditedText((prev) => ({
+                                    ...prev,
+                                    [task._id]: task.title,
+                                  }));
+
+                                  dispatch({
+                                    type: "TOGGLE_EDIT_TASK",
+                                    payload: task._id,
+                                  });
+                                }}
+                              >
+                                ✏️
+                              </button>
+                            )}
+
+                            {hasSubTasks && (
+                              <span className="text-purple-500 text-sm cursor-pointer">
+                                {isOpen ? "▲" : "▼"}
+                              </span>
+                            )}
+                          </span>
                         </p>
-                        <div className="flex gap-2">
-                          {!isDone && (
-                            <button
-                              className="text-gray-400 hover:text-purple-600 transition cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-
-                                if (hasSubTasks) {
-                                  setSelectedTask(task);
-                                  setShowWarning(true);
-                                  return;
-                                }
-
-                                setEditedText((prev) => ({
-                                  ...prev,
-                                  [task._id]: task.title,
-                                }));
-
-                                dispatch({
-                                  type: "TOGGLE_EDIT_TASK",
-                                  payload: task._id,
-                                });
-                              }}
-                            >
-                              ✏️
-                            </button>
-                          )}
-
-                          {hasSubTasks && (
-                            <span className="text-purple-500 text-sm cursor-pointer">
-                              {isOpen ? "▲" : "▼"}
-                            </span>
-                          )}
-                        </div>
                       </div>
 
                       <p className="text-xs text-gray-400 mt-1">
@@ -430,10 +468,10 @@ function TaskList() {
                 </div>
 
                 {/* 🔹 RIGHT SECTION */}
-                <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
+                <div className="flex items-center gap-2 flex-nowrap shrink-0">
                   {/* STATUS */}
                   <span
-                    className={`px-3 py-1 text-xs rounded-full font-medium ${taskColor[task.status]}`}
+                    className={`px-3 py-1 text-xs rounded-full font-medium whitespace-nowrap ${taskColor[task.status]}`}
                   >
                     {task.status}
                   </span>
@@ -596,26 +634,7 @@ function TaskList() {
                 className="px-3 py-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600"
                 onClick={() => {
                   // clear subtasks
-                  dispatch({
-                    type: "CLEAR_SUBTASKS",
-                    payload: selectedTask._id,
-                  });
-                  setSubTaskLoading((prev) => {
-                    const { [selectedTask._id]: _, ...rest } = prev;
-                    return rest;
-                  });
-
-                  // enable edit
-                  dispatch({
-                    type: "TOGGLE_EDIT_TASK",
-                    payload: selectedTask._id,
-                  });
-
-                  setEditedText((prev) => ({
-                    ...prev,
-                    [selectedTask._id]: selectedTask.title,
-                  }));
-
+                  handleEdit(selectedTask, true);
                   setShowWarning(false);
                   setSelectedTask(null);
                   setOpenTaskId(null);
