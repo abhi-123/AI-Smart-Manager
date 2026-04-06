@@ -109,13 +109,16 @@ router.patch("/:id/subtasks", async (req, res) => {
     const { title } = req.body;
 
     // 🔥 Python call
-    const aiRes = await fetch("http://localhost:8001/generate-subtasks", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const aiRes = await fetch(
+      "https://ai-smart-manager.onrender.com/generate-subtasks",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ title }),
       },
-      body: JSON.stringify({ title }),
-    });
+    );
 
     const aiData = await aiRes.json();
 

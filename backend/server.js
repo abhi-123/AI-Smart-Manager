@@ -11,7 +11,11 @@ import { verifyToken } from "./routes/auth.js";
 const app = express();
 
 // ✅ IMPORTANT — CORS
-app.use(cors());
+app.use(
+  cors({
+    origin: "*", // (later restrict)
+  }),
+);
 app.use(express.json());
 app.use((req, res, next) => {
   console.log("🔥", req.method, req.url);
@@ -29,8 +33,10 @@ mongoose
   .then(() => {
     console.log("DB connected 🚀");
 
-    app.listen(8000, () => {
-      console.log("Server started on port 5000 🚀");
+    const PORT = process.env.PORT || 8000;
+
+    app.listen(PORT, () => {
+      console.log(`Server running on ${PORT}`);
     });
   })
   .catch((err) => console.log(err));

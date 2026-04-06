@@ -1,5 +1,5 @@
-//const baseURl = "https://ai-smart-manager.onrender.com";
-const baseURl = "http://127.0.0.1:8000";
+const baseURl = "https://ai-smart-manager-node-backend.onrender.com";
+//const baseURl = "http://127.0.0.1:8000";
 export const getTasks = async () => {
   const res = await fetch(baseURl + "/tasks", {
     method: "GET",
@@ -60,7 +60,7 @@ export const editTask = async (id, data) => {
 };
 
 export const deleteTask = async (id) => {
-  const response = await fetch(`http://localhost:8000/tasks/${id}`, {
+  const response = await fetch(`${baseURl}/tasks/${id}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${localStorage.getItem("token")}`,
