@@ -24,7 +24,7 @@ function Login() {
     if (data.token) {
       login(data.token);
     } else {
-      toast.error(data.error || data.message);
+      toast.error(data.error || data.message || "Something went wrong");
     }
     setLoading(false);
   };
