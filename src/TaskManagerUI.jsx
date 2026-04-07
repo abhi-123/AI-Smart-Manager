@@ -45,16 +45,6 @@ function TaskManagerUI() {
   };
   return (
     <>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: "#111",
-            color: "#fff",
-            borderRadius: "12px",
-          },
-        }}
-      />
       <div className="min-h-screen bg-gray-100 p-3 md:p-6 w-screen">
         <div className="max-w-5xl mx-auto space-y-6">
           {/* HEADER */}

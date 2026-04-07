@@ -9,12 +9,14 @@ function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const navigate = useNavigate();
   const { isAuth, login } = useContext(AuthContext);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async () => {
+    setLoading(true);
     const url = isLogin ? "/auth/login" : "/auth/signup";
 
     const data = await handleLoginSignup(url, form);
@@ -24,6 +26,7 @@ function Login() {
     } else {
       toast.error(data.error || data.message);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -56,14 +59,16 @@ function Login() {
 
         <button
           onClick={handleSubmit}
-          className="w-full bg-purple-600 text-white py-2 rounded"
+          className="w-full bg-purple-600 text-white py-2 rounded  cursor-pointer disabled:opacity-50"
+          disabled={form.email === "" || form.password === "" || loading}
         >
-          {isLogin ? "Login" : "Signup"}
+          {loading ? "Processing..." : isLogin ? "Login" : "Signup"}
         </button>
 
         <p
           className="text-sm mt-3 text-center cursor-pointer text-purple-600"
           onClick={() => setIsLogin(!isLogin)}
+          disabled={loading}
         >
           {isLogin ? "Create new account" : "Already have an account? Login"}
         </p>
