@@ -9,7 +9,10 @@ app = FastAPI()
 # ✅ CORS (React/JS connect)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 🔥 Allow all (for DEV)
+    allow_origins=[
+        "https://ai-chat-app-six-alpha.vercel.app",
+        "http://localhost:5173"
+    ],  # 🔥 Allow all (for DEV)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
