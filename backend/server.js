@@ -12,9 +12,10 @@ const app = express();
 
 // ✅ IMPORTANT — CORS
 app.use(
-    cors({
-      origin: "*", // (later restrict)
-    }),
+  cors({
+    origin: "*", // (later restrict)
+  }),
+);
 app.use(express.json());
 app.use((req, res, next) => {
   console.log("🔥", req.method, req.url);
