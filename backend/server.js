@@ -12,10 +12,9 @@ const app = express();
 
 // ✅ IMPORTANT — CORS
 app.use(
-  cors({
-    origin: [["https://ai-smart-manager.vercel.app", "http://localhost:5173"]], // (later restrict)
-  }),
-);
+    cors({
+      origin: "*", // (later restrict)
+    }),
 app.use(express.json());
 app.use((req, res, next) => {
   console.log("🔥", req.method, req.url);
